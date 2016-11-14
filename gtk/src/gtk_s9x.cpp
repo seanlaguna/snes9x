@@ -1,3 +1,4 @@
+#include <iostream>
 #include <stdio.h>
 #include <sys/time.h>
 #include <signal.h>
@@ -199,15 +200,15 @@ S9xOpenROM (const char *rom_filename)
         Memory.LoadSRAM (S9xGetFilename (".srm", SRAM_DIR));
         S9xLoadCheatFile (S9xGetFilename (".cht", CHEAT_DIR));
 
-        for (unsigned int i = 0; i < Cheat.num_cheats; i++)
-        {
-            if (Cheat.c[i].enabled)
-            {
-                /* RAM is fresh, so we need to clean out old saved values */
-                Cheat.c[i].saved = FALSE;
-                S9xApplyCheat (i);
-            }
-        }
+        //  for (unsigned int i = 0; i < Cheat.num_cheats; i++)
+        //  {
+        //      if (Cheat.c[i].enabled)
+        //      {
+        //          /* RAM is fresh, so we need to clean out old saved values */
+        //          Cheat.c[i].saved = FALSE;
+        //          S9xApplyCheat (i);
+        //      }
+        //  }
     }
     else
     {
@@ -675,6 +676,66 @@ S9xCheckPointerTimer (void)
 
     return;
 }
+
+/*
+const char* OpenLuaScript(const char* filename, const char* extraDirToCheck, bool makeSubservient)
+{
+    // make the filename absolute before loading
+    char tfilenameString[1024];
+    char *tfilename = tfilenameString;
+    strncpy(tfilename, _tFromAnsi(filename), 1024);
+    tfilename = (TCHAR*)MakeScriptPathAbsolute(tfilename, _tFromAnsi(extraDirToCheck));
+
+    // now check if it's already open and load it if it isn't
+    HWND IsScriptFileOpen(const TCHAR* Path);
+    HWND scriptHWnd = IsScriptFileOpen(tfilename);
+    if(!scriptHWnd)
+    {
+        HWND prevWindow = GetActiveWindow();
+
+        HWND hDlg = CreateDialog(g_hInstance, MAKEINTRESOURCE(IDD_LUA), g_hWnd, (DLGPROC) LuaScriptProc);
+        SendDlgItemMessage(hDlg,IDC_EDIT_LUAPATH,WM_SETTEXT,0,(LPARAM)tfilename);
+//			DialogsOpen++;
+
+        SetActiveWindow(prevWindow);
+    }
+    else
+    {
+        RequestAbortLuaScript((int)scriptHWnd, "terminated to restart because of a call to emu.openscript");
+    }
+
+	return NULL;
+}
+*/
+
+void
+PrintToWindowConsole(int hDlgAsInt, const char* str)
+{
+    std::cout << str << std::endl;
+    return;
+}
+
+void
+OnStart(int hDlgAsInt)
+{
+    return;
+}
+
+void
+OnStop(int hDlgAsInt, bool statusOK)
+{
+    return;
+}
+
+/* Final exit point, issues exit (0) */
+void
+S9xLoadLuaScript (void)
+{
+	OpenLuaContext(0, PrintToWindowConsole, OnStart, OnStop);
+    RunLuaScriptFile(0, "/home/sean/SMRPGBaseWithRNG_new.lua");
+    return;
+}
+
 
 /* Final exit point, issues exit (0) */
 void

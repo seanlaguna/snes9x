@@ -17,8 +17,8 @@ static void
 add_cheat (uint32 address, uint8 byte, const char *description)
 {
     S9xAddCheat (FALSE, TRUE, address, byte);
-    S9xEnableCheat (Cheat.num_cheats - 1);
-    strncpy (Cheat.c[Cheat.num_cheats - 1].name, description, 22);
+    //S9xEnableCheat (Cheat.num_cheats - 1);
+    //strncpy (Cheat.c[Cheat.num_cheats - 1].name, description, 22);
 }
 
 static void
@@ -194,24 +194,24 @@ Snes9xCheats::refresh_tree_view (void)
 
     gtk_list_store_clear (store);
 
-    for (unsigned int i = 0; i < Cheat.num_cheats; i++)
-    {
-        snprintf (str,
-                  1024,
-                  "%06x:%02x/%02x",
-                  Cheat.c [i].address,
-                  Cheat.c [i].byte,
-                  Cheat.c [i].saved_byte);
-
-        gtk_list_store_append (store, &iter);
-        gtk_list_store_set (store, &iter,
-                            COLUMN_DESCRIPTION,
-                            !strcmp (Cheat.c [i].name, "") ? _("No description")
-                                    : Cheat.c [i].name,
-                            COLUMN_CHEAT, str,
-                            COLUMN_ENABLED, Cheat.c [i].enabled,
-                            -1);
-    }
+    //  for (unsigned int i = 0; i < Cheat.num_cheats; i++)
+    //  {
+    //      snprintf (str,
+    //                1024,
+    //                "%06x:%02x/%02x",
+    //                Cheat.c [i].address,
+    //                Cheat.c [i].byte,
+    //                Cheat.c [i].saved_byte);
+    //
+    //      gtk_list_store_append (store, &iter);
+    //      gtk_list_store_set (store, &iter,
+    //                          COLUMN_DESCRIPTION,
+    //                          !strcmp (Cheat.c [i].name, "") ? _("No description")
+    //                                  : Cheat.c [i].name,
+    //                          COLUMN_CHEAT, str,
+    //                          COLUMN_ENABLED, Cheat.c [i].enabled,
+    //                          -1);
+    //  }
 
 
     return;
@@ -237,11 +237,11 @@ Snes9xCheats::add_code (void)
         add_cheat (address, byte, description);
     else if (!S9xProActionReplayToRaw (code, address, byte))
         add_cheat (address, byte, description);
-    else if (!S9xGoldFingerToRaw (code, address, sram, num_bytes, bytes))
+    /*else if (!S9xGoldFingerToRaw (code, address, sram, num_bytes, bytes))
     {
         for (int c = 0; c < num_bytes; c++)
             add_cheat (address + c, bytes[c], description);
-    }
+    }*/
     else
     {
         display_errorbox (_("Code does not match Game Genie, ProAction Replay, or GoldFinger format."));

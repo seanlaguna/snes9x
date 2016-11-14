@@ -473,6 +473,9 @@ enum
 
 void S9xSetPause(uint32);
 void S9xClearPause(uint32);
+#ifdef HAVE_LUA
+void S9xLoadLuaScript(void);
+#endif
 void S9xExit(void);
 void S9xMessage(int, int, const char *);
 

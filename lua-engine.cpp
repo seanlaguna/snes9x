@@ -17,6 +17,7 @@
 #include <string>
 #include <algorithm>
 #include "zlib.h"
+#include <iostream>
 
 #ifdef __WIN32__
 #define NOMINMAX
@@ -189,7 +190,7 @@ static const char* luaCallIDStrings [] =
 	"CALL_HOTKEY_15",
 	"CALL_HOTKEY_16",
 };
-static const int _makeSureWeHaveTheRightNumberOfStrings [sizeof(luaCallIDStrings)/sizeof(*luaCallIDStrings) == LUACALL_COUNT ? 1 : 0];
+static const int _makeSureWeHaveTheRightNumberOfStrings [sizeof(luaCallIDStrings)/sizeof(*luaCallIDStrings) == LUACALL_COUNT ? 1 : 0]{};
 
 static const char* luaMemHookTypeStrings [] =
 {
@@ -201,7 +202,7 @@ static const char* luaMemHookTypeStrings [] =
 	"MEMHOOK_READ_SUB",
 	"MEMHOOK_EXEC_SUB",
 };
-static const int _makeSureWeHaveTheRightNumberOfStrings2 [sizeof(luaMemHookTypeStrings)/sizeof(*luaMemHookTypeStrings) == LUAMEMHOOK_COUNT ? 1 : 0];
+static const int _makeSureWeHaveTheRightNumberOfStrings2 [sizeof(luaMemHookTypeStrings)/sizeof(*luaMemHookTypeStrings) == LUAMEMHOOK_COUNT ? 1 : 0]{};
 
 void StopScriptIfFinished(int uid, bool justReturned = false);
 void SetSaveKey(LuaContextInfo& info, const char* key);
@@ -1452,6 +1453,17 @@ void LuaRescueHook(lua_State* L, lua_Debug *dbg)
 	}
 }
 
+int _vscprintf(const char * format, va_list pargs)
+{ 
+    int retval; 
+    va_list argcopy;
+    va_copy(argcopy, pargs); 
+    retval = vsnprintf(NULL, 0, format, argcopy); 
+    va_end(argcopy); 
+    return retval;
+}
+#define vscprintf _vscprintf
+
 void printfToOutput(const char* fmt, ...)
 {
 	va_list list;
@@ -1647,47 +1659,32 @@ DEFINE_LUA_FUNCTION(emu_wait, "")
 
 
 
-/*
 DEFINE_LUA_FUNCTION(emu_frameadvance, "")
 {
-	if(FailVerifyAtFrameBoundary(L, "emu.frameadvance", 0,1))
-		return emu_wait(L);
-
 	int uid = luaStateToUIDMap[L];
 	LuaContextInfo& info = GetCurrentInfo();
 
 	if(!info.ranFrameAdvance)
 	{
-		// otherwise we'll never see the first frame of GUI drawing
-		if(info.speedMode != SPEEDMODE_MAXIMUM)
-			Show_Genesis_Screen();
 		info.ranFrameAdvance = true;
 	}
 
 	switch(info.speedMode)
 	{
-		default:
 		case SPEEDMODE_NORMAL:
-			while(!Step_Gens_MainLoop(true, true) && !info.panic);
 			break;
 		case SPEEDMODE_NOTHROTTLE:
-			while(!Step_Gens_MainLoop(Paused!=0, false) && !info.panic);
-			if(!(FastForwardKeyDown && (GetActiveWindow()==HWnd || BackgroundInput)))
-				emu_emulateframefastnoskipping(L);
-			else
-				emu_emulateframefast(L);
 			break;
 		case SPEEDMODE_TURBO:
-			while(!Step_Gens_MainLoop(Paused!=0, false) && !info.panic);
-			emu_emulateframefast(L);
 			break;
 		case SPEEDMODE_MAXIMUM:
-			while(!Step_Gens_MainLoop(Paused!=0, false) && !info.panic);
-			emu_emulateframeinvisible(L);
 			break;
 	}
+    std::cout << info.speedMode << std::endl;
+    S9xProcessEvents(FALSE);
+    S9xMainLoop();
 	return 0;
-}*/
+}
 
 DEFINE_LUA_FUNCTION(emu_pause, "")
 {
@@ -2836,7 +2833,7 @@ DEFINE_LUA_FUNCTION(joy_peekup, "[controller=1]")
 static const struct ColorMapping
 {
 	const char* name;
-	int value;
+	uint32_t value;
 }
 s_colorMapping [] =
 {
@@ -3008,14 +3005,14 @@ static void prepare_reading()
 
 
 // check if a pixel is in the lua canvas
-static FORCEINLINE bool gui_checkboundary(int x, int y) {
+static inline bool gui_checkboundary(int x, int y) {
 	return !(x < curGuiData.xMin || x >= curGuiData.xMax || y < curGuiData.yMin || y >= curGuiData.yMax);
 }
-static FORCEINLINE void gui_adjust_coord(int& x, int& y) {
+static inline void gui_adjust_coord(int& x, int& y) {
 	x += curGuiData.xOrigin;
 	y += curGuiData.yOrigin;
 }
-static FORCEINLINE bool gui_checkbox(int x1, int y1, int x2, int y2) {
+static inline bool gui_checkbox(int x1, int y1, int x2, int y2) {
 	if((x1 <  curGuiData.xMin && x2 <  curGuiData.xMin)
 	|| (x1 >= curGuiData.xMax && x2 >= curGuiData.xMax)
 	|| (y1 <  curGuiData.yMin && y2 <  curGuiData.yMin)
@@ -3025,20 +3022,20 @@ static FORCEINLINE bool gui_checkbox(int x1, int y1, int x2, int y2) {
 }
 
 // write a pixel (do not check boundaries for speedup)
-static FORCEINLINE void gui_drawpixel_unchecked(int x, int y, uint32 color) {
+static inline void gui_drawpixel_unchecked(int x, int y, uint32 color) {
 	blend32((uint32*) &curGuiData.data[y*curGuiData.stridePix+x], color);
 }
 
 // write a pixel (check boundaries)
-static FORCEINLINE void gui_drawpixel_checked(int x, int y, uint32 color) {
+static inline void gui_drawpixel_checked(int x, int y, uint32 color) {
 	if (gui_checkboundary(x, y))
 		gui_drawpixel_unchecked(x, y, color);
 }
 
-static FORCEINLINE uint32 gui_getpixel_unchecked(int x, int y) {
+static inline uint32 gui_getpixel_unchecked(int x, int y) {
 	return curGuiData.data[y*curGuiData.stridePix+x];
 }
-static FORCEINLINE uint32 gui_adjust_coord_and_getpixel(int x, int y) {
+static inline uint32 gui_adjust_coord_and_getpixel(int x, int y) {
 	x += curGuiData.xOrigin;
 	y += curGuiData.yOrigin;
 	x = std::min(std::max(x, curGuiData.xMin), curGuiData.xMax-1);
@@ -3496,7 +3493,7 @@ DEFINE_LUA_FUNCTION(gui_pixel, "x,y[,color=\"white\"]")
 	return 0;
 }
 
-static FORCEINLINE void RGB555ToRGB888(uint32& r, uint32& g, uint32& b, bool rotateColorBit = true)
+static inline void RGB555ToRGB888(uint32& r, uint32& g, uint32& b, bool rotateColorBit = true)
 {
 	if (rotateColorBit) {
 		// Diagram:   000XXxxx -> XXxxx000 -> XXxxxXXx
@@ -3848,7 +3845,7 @@ DEFINE_LUA_FUNCTION(gui_savescreenshot, "[filename]")
 	return 1;
 }
 
-static FORCEINLINE uint8 CalcBlend8(uint8 dst, uint8 src, uint8 alpha)
+static inline uint8 CalcBlend8(uint8 dst, uint8 src, uint8 alpha)
 {
 	if (alpha == 0)
 		return dst;
@@ -3858,7 +3855,7 @@ static FORCEINLINE uint8 CalcBlend8(uint8 dst, uint8 src, uint8 alpha)
 		return (uint8)((((int) src - dst) * alpha / 255 + dst) & 0xFF);
 }
 
-static FORCEINLINE void ParseColor16(uint8 *src, uint8 *r, uint8 *g, uint8 *b, uint8 *a)
+static inline void ParseColor16(uint8 *src, uint8 *r, uint8 *g, uint8 *b, uint8 *a)
 {
 	uint16 color = *(uint16*)src;
 	uint32 rv, gv, bv;
@@ -3870,7 +3867,7 @@ static FORCEINLINE void ParseColor16(uint8 *src, uint8 *r, uint8 *g, uint8 *b, u
 		*a = 255;
 }
 
-static FORCEINLINE void ParseColor24(uint8 *src, uint8 *r, uint8 *g, uint8 *b, uint8 *a)
+static inline void ParseColor24(uint8 *src, uint8 *r, uint8 *g, uint8 *b, uint8 *a)
 {
 	*b = src[0];
 	*g = src[1];
@@ -3879,7 +3876,7 @@ static FORCEINLINE void ParseColor24(uint8 *src, uint8 *r, uint8 *g, uint8 *b, u
 		*a = 255;
 }
 
-static FORCEINLINE void ParseColor32(uint8 *src, uint8 *r, uint8 *g, uint8 *b, uint8 *a)
+static inline void ParseColor32(uint8 *src, uint8 *r, uint8 *g, uint8 *b, uint8 *a)
 {
 	*b = src[0];
 	*g = src[1];
@@ -3888,19 +3885,19 @@ static FORCEINLINE void ParseColor32(uint8 *src, uint8 *r, uint8 *g, uint8 *b, u
 		*a = src[3];
 }
 
-static FORCEINLINE void WriteColor16(uint8 *dst, uint8 r, uint8 g, uint8 b)
+static inline void WriteColor16(uint8 *dst, uint8 r, uint8 g, uint8 b)
 {
 	*(uint16*)dst = BUILD_PIXEL(r >> 3, g >> 3, b >> 3);
 }
 
-static FORCEINLINE void WriteColor24(uint8 *dst, uint8 r, uint8 g, uint8 b)
+static inline void WriteColor24(uint8 *dst, uint8 r, uint8 g, uint8 b)
 {
 	dst[0] = b;
 	dst[1] = g;
 	dst[2] = r;
 }
 
-static FORCEINLINE void WriteColor32(uint8 *dst, uint8 r, uint8 g, uint8 b)
+static inline void WriteColor32(uint8 *dst, uint8 r, uint8 g, uint8 b)
 {
 	dst[0] = b;
 	dst[1] = g;
@@ -4007,14 +4004,13 @@ static void GetCurrentScriptDir(char* buffer, int bufLen)
 
 DEFINE_LUA_FUNCTION(emu_openscript, "filename")
 {
-#ifdef __WIN32__
 	char curScriptDir[1024]; GetCurrentScriptDir(curScriptDir, 1024); // make sure we can always find scripts that are in the same directory as the current script
 	const char* filename = lua_isstring(L,1) ? lua_tostring(L,1) : NULL;
-	extern const char* OpenLuaScript(const char* filename, const char* extraDirToCheck, bool makeSubservient);
-	const char* errorMsg = OpenLuaScript(filename, curScriptDir, true);
-	if(errorMsg)
-		luaL_error(L, errorMsg);
-#endif
+	//extern const char* OpenLuaScript(const char* filename, const char* extraDirToCheck, bool makeSubservient);
+	//const char* errorMsg = OpenLuaScript(filename, curScriptDir, true);
+	//if(errorMsg)
+	//	luaL_error(L, errorMsg);
+    std::cout << "eo" << std::endl;
     return 0;
 }
 /*
@@ -4558,7 +4554,7 @@ static int gcStateData(lua_State *L)
 
 static const struct luaL_reg emulib [] =
 {
-//	{"frameadvance", emu_frameadvance},
+	{"frameadvance", emu_frameadvance},
 //	{"speedmode", emu_speedmode},
 //	{"wait", emu_wait},
 	{"pause", emu_pause},
@@ -5041,20 +5037,28 @@ void OpenLuaContext(int uid, void(*print)(int uid, const char* str), void(*onsta
 	luaContextInfo[uid] = newInfo;
 }
 
+#define _chdir chdir
+
 void RunLuaScriptFile(int uid, const char* filenameCStr)
 {
+    std::cout << "in rlsf" << std::endl;
 	if(luaContextInfo.find(uid) == luaContextInfo.end())
+    {
+        std::cout << "no context" << std::endl;
 		return;
+    }
 	StopLuaScript(uid);
 
 	LuaContextInfo& info = *luaContextInfo[uid];
 
 #ifdef USE_INFO_STACK
 	infoStack.insert(infoStack.begin(), &info);
-	struct Scope { ~Scope(){ infoStack.erase(infoStack.begin()); } } scope; // doing it like this makes sure that the info stack gets cleaned up even if an exception is thrown
+    // doing it like this makes sure that the info stack gets cleaned up even if an exception is thrown
+	struct Scope { ~Scope(){ infoStack.erase(infoStack.begin()); } } scope;
 #endif
 
 	info.nextFilename = filenameCStr;
+    std::cout << "fn: " << info.nextFilename << std::endl;
 
 	// TODO: store script's current directory into LuaContextInfo
 	static char dirnameCStr[MAX_PATH];
@@ -5077,6 +5081,7 @@ void RunLuaScriptFile(int uid, const char* filenameCStr)
 	do
 	{
 		std::string filename = info.nextFilename;
+        std::cout << "fn: " << filename << std::endl;
 
 		lua_State* L = lua_open();
 #ifndef USE_INFO_STACK
@@ -5477,8 +5482,8 @@ struct TieredRegion
 
 		bool Contains(unsigned int address, int size, unsigned int & mirrored_address) const
 		{
-			std::vector<Island>::const_iterator iter = islands.begin();
-			std::vector<Island>::const_iterator end = islands.end();
+			typename std::vector<Island>::const_iterator iter = islands.begin();
+			typename std::vector<Island>::const_iterator end = islands.end();
 			for(; iter != end; ++iter)
 				if(iter->Contains(address, size, mirrored_address))
 					return true;
@@ -5499,7 +5504,7 @@ struct TieredRegion
 
 	TieredRegion()
 	{
-		Calculate(std::vector<unsigned int>());
+		//Calculate(std::vector<unsigned int>());
 	}
 
 	__forceinline int NotEmpty()
@@ -5633,6 +5638,7 @@ void CallRegisteredLuaFunctions(LuaCallID calltype)
 		lua_State* L = info.L;
 		if(L && (!info.panic || calltype == LUACALL_BEFOREEXIT))
 		{
+            std::cout << "validly looping" << std::endl;
 #ifdef USE_INFO_STACK
 			infoStack.insert(infoStack.begin(), &info);
 			struct Scope { ~Scope(){ infoStack.erase(infoStack.begin()); } } scope;
@@ -5653,6 +5659,7 @@ void CallRegisteredLuaFunctions(LuaCallID calltype)
 			
 			if (lua_isfunction(L, -1))
 			{
+                std::cout << "crlf not a func" << std::endl;
 				bool wasRunning = info.running;
 				info.running = true;
 				RefreshScriptSpeedStatus();
@@ -5660,19 +5667,27 @@ void CallRegisteredLuaFunctions(LuaCallID calltype)
 				info.running = wasRunning;
 				RefreshScriptSpeedStatus();
 				if (errorcode)
+                {
+                    std::cout << "crlf error" << std::endl;
 					HandleCallbackError(L,info,uid,true);
+                }
 			}
 			else
 			{
+                std::cout << "crlf func" << std::endl;
 				lua_pop(L, 1);
 			}
 
 			info.guiFuncsNeedDeferring = true;
 			if(!info.crashed)
 			{
+                std::cout << "crlf no crash" << std::endl;
 				lua_settop(L, top);
 				if(!info.panic)
+                {
+                    std::cout << "crlf no crash" << std::endl;
 					dontworry(info);
+                }
 			}
 		}
 
@@ -5865,7 +5880,7 @@ static void PushNils(std::vector<unsigned char>& output, int& nilcount)
 	else
 	{
 		output.push_back(LUAEXT_TNILS);
-		PushBinaryItem<UINT32>(count, output);
+		PushBinaryItem<uint32_t>(count, output);
 	}
 }
 
@@ -5916,7 +5931,7 @@ static void LuaStackToBinaryConverter(lua_State* L, int i, std::vector<unsigned 
 		case LUA_TNUMBER:
 			{
 				double num = (double)lua_tonumber(L,i);
-				INT32 inum = (INT32)lua_tointeger(L,i);
+				int32_t inum = (int32_t)lua_tointeger(L,i);
 				if(num != inum)
 				{
 					PushBinaryItem(num, output);
@@ -5925,9 +5940,9 @@ static void LuaStackToBinaryConverter(lua_State* L, int i, std::vector<unsigned 
 				{
 					if((inum & ~0xFF) == 0)
 						type = LUAEXT_TBYTE;
-					else if((UINT16)(inum & 0xFFFF) == inum)
+					else if((uint16_t)(inum & 0xFFFF) == inum)
 						type = LUAEXT_TUSHORT;
-					else if((INT16)(inum & 0xFFFF) == inum)
+					else if((int16_t)(inum & 0xFFFF) == inum)
 						type = LUAEXT_TSHORT;
 					else
 						type = LUAEXT_TLONG;
@@ -5935,13 +5950,13 @@ static void LuaStackToBinaryConverter(lua_State* L, int i, std::vector<unsigned 
 					switch(type)
 					{
 					case LUAEXT_TLONG:
-						PushBinaryItem<INT32>(inum, output);
+						PushBinaryItem<int32_t>(inum, output);
 						break;
 					case LUAEXT_TUSHORT:
-						PushBinaryItem<UINT16>(inum, output);
+						PushBinaryItem<uint16_t>(inum, output);
 						break;
 					case LUAEXT_TSHORT:
-						PushBinaryItem<INT16>(inum, output);
+						PushBinaryItem<int16_t>(inum, output);
 						break;
 					case LUAEXT_TBYTE:
 						output.push_back(inum);
@@ -6078,7 +6093,7 @@ void BinaryToLuaStackConverter(lua_State* L, const unsigned char*& data, unsigne
 			lua_pushnil(L);
 			break;
 		case LUA_TBOOLEAN:
-			lua_pushboolean(L, AdvanceByteStream<UINT8>(data, remaining));
+			lua_pushboolean(L, AdvanceByteStream<uint8_t>(data, remaining));
 			break;
 		case LUA_TSTRING:
 			lua_pushstring(L, (const char*)data);
@@ -6088,16 +6103,16 @@ void BinaryToLuaStackConverter(lua_State* L, const unsigned char*& data, unsigne
 			lua_pushnumber(L, AdvanceByteStream<double>(data, remaining));
 			break;
 		case LUAEXT_TLONG:
-			lua_pushinteger(L, AdvanceByteStream<INT32>(data, remaining));
+			lua_pushinteger(L, AdvanceByteStream<int32_t>(data, remaining));
 			break;
 		case LUAEXT_TUSHORT:
-			lua_pushinteger(L, AdvanceByteStream<UINT16>(data, remaining));
+			lua_pushinteger(L, AdvanceByteStream<uint16_t>(data, remaining));
 			break;
 		case LUAEXT_TSHORT:
-			lua_pushinteger(L, AdvanceByteStream<INT16>(data, remaining));
+			lua_pushinteger(L, AdvanceByteStream<int16_t>(data, remaining));
 			break;
 		case LUAEXT_TBYTE:
-			lua_pushinteger(L, AdvanceByteStream<UINT8>(data, remaining));
+			lua_pushinteger(L, AdvanceByteStream<uint8_t>(data, remaining));
 			break;
 		case LUAEXT_TTABLE:
 		case LUAEXT_TTABLE | LUAEXT_BITS_1A:
@@ -6118,21 +6133,21 @@ void BinaryToLuaStackConverter(lua_State* L, const unsigned char*& data, unsigne
 			{
 				unsigned int arraySize = 0;
 				if(BITMATCH(type,LUAEXT_BITS_4A) || BITMATCH(type,LUAEXT_BITS_2A) || BITMATCH(type,LUAEXT_BITS_1A))
-					arraySize |= AdvanceByteStream<UINT8>(data, remaining);
+					arraySize |= AdvanceByteStream<uint8_t>(data, remaining);
 				if(BITMATCH(type,LUAEXT_BITS_4A) || BITMATCH(type,LUAEXT_BITS_2A))
-					arraySize |= ((UINT16)AdvanceByteStream<UINT8>(data, remaining)) << 8;
+					arraySize |= ((uint16_t)AdvanceByteStream<uint8_t>(data, remaining)) << 8;
 				if(BITMATCH(type,LUAEXT_BITS_4A))
-					arraySize |= ((UINT32)AdvanceByteStream<UINT8>(data, remaining)) << 16,
-					arraySize |= ((UINT32)AdvanceByteStream<UINT8>(data, remaining)) << 24;
+					arraySize |= ((uint32_t)AdvanceByteStream<uint8_t>(data, remaining)) << 16,
+					arraySize |= ((uint32_t)AdvanceByteStream<uint8_t>(data, remaining)) << 24;
 
 				unsigned int hashSize = 0;
 				if(BITMATCH(type,LUAEXT_BITS_4H) || BITMATCH(type,LUAEXT_BITS_2H) || BITMATCH(type,LUAEXT_BITS_1H))
-					hashSize |= AdvanceByteStream<UINT8>(data, remaining);
+					hashSize |= AdvanceByteStream<uint8_t>(data, remaining);
 				if(BITMATCH(type,LUAEXT_BITS_4H) || BITMATCH(type,LUAEXT_BITS_2H))
-					hashSize |= ((UINT16)AdvanceByteStream<UINT8>(data, remaining)) << 8;
+					hashSize |= ((uint16_t)AdvanceByteStream<uint8_t>(data, remaining)) << 8;
 				if(BITMATCH(type,LUAEXT_BITS_4H))
-					hashSize |= ((UINT32)AdvanceByteStream<UINT8>(data, remaining)) << 16,
-					hashSize |= ((UINT32)AdvanceByteStream<UINT8>(data, remaining)) << 24;
+					hashSize |= ((uint32_t)AdvanceByteStream<uint8_t>(data, remaining)) << 16,
+					hashSize |= ((uint32_t)AdvanceByteStream<uint8_t>(data, remaining)) << 24;
 
 				lua_createtable(L, arraySize, hashSize);
 
@@ -6142,7 +6157,7 @@ void BinaryToLuaStackConverter(lua_State* L, const unsigned char*& data, unsigne
 					if(*data == LUAEXT_TNILS)
 					{
 						AdvanceByteStream(data, remaining, 1);
-						n += AdvanceByteStream<UINT32>(data, remaining);
+						n += AdvanceByteStream<uint32_t>(data, remaining);
 					}
 					else
 					{

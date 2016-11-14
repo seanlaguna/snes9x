@@ -1368,6 +1368,17 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkImageMenuItem" id="lua_item">
+                        <property name="label" translatable="yes">_Load Lua Script...</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_underline">True</property>
+                        <property name="image">image18</property>
+                        <property name="use_stock">False</property>
+                        <signal name="activate" handler="load_lua_script_event" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkImageMenuItem" id="exit_item">
                         <property name="label" translatable="yes">_Quit</property>
                         <property name="visible">True</property>

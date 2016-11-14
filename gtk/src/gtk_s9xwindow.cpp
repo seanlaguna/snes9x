@@ -25,6 +25,16 @@
 #endif
 
 static gboolean
+event_load_lua_script (GtkWidget *widget,
+                       GdkEvent  *event,
+                       gpointer  data)
+{
+    S9xLoadLuaScript ();
+
+    return TRUE;
+}
+
+static gboolean
 event_main_window_delete (GtkWidget *widget,
                           GdkEvent  *event,
                           gpointer  data)
@@ -545,6 +555,7 @@ Snes9xWindow::Snes9xWindow (Snes9xConfig *config) :
 {
     GtkBuilderWindowCallbacks callbacks[] =
     {
+        { "load_lua_script_event", G_CALLBACK (event_load_lua_script) },
         { "main_window_delete_event", G_CALLBACK (event_main_window_delete) },
         { "main_window_state_event", G_CALLBACK (event_main_window_state_event) },
         { "on_continue_item_activate", G_CALLBACK (event_continue_item_activate) },

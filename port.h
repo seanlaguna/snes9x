@@ -287,6 +287,9 @@ typedef int					pint;
 #ifndef PATH_MAX
 #define PATH_MAX	1024
 #endif
+#ifndef MAX_PATH
+#define MAX_PATH	_MAX_PATH
+#endif
 #define _MAX_DRIVE	1
 #define _MAX_DIR	PATH_MAX
 #define _MAX_FNAME	PATH_MAX

@@ -186,6 +186,9 @@ snes9x_gtk_SOURCES += \
     ../cheats.cpp \
     ../cheats2.cpp
 
+snes9x_gtk_SOURCES += \
+    ../lua-engine.cpp
+
 if SDD1_DECOMP
 snes9x_gtk_SOURCES += ../sdd1emu.cpp
 endif
