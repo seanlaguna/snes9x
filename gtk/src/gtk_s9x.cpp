@@ -729,10 +729,10 @@ OnStop(int hDlgAsInt, bool statusOK)
 
 /* Final exit point, issues exit (0) */
 void
-S9xLoadLuaScript (void)
+S9xLoadLuaScript (const char* filename)
 {
 	OpenLuaContext(0, PrintToWindowConsole, OnStart, OnStop);
-    RunLuaScriptFile(0, "/home/sean/SMRPGBaseWithRNG_new.lua");
+    RunLuaScriptFile(0, filename);
     return;
 }
 

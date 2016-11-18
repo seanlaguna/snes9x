@@ -10,4 +10,6 @@ void S9xSaveState (const char *filename);
 void S9xQuickSaveSlot (int slot);
 void S9xQuickLoadSlot (int slot);
 
+char *S9xOpenLuaScriptDialog (void);
+
 #endif /* __GTK_FILE_H */

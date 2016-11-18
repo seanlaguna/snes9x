@@ -37,6 +37,7 @@ class Snes9xWindow : public GtkBuilderWindow
         /* Rom-related functions */
         void open_rom_dialog (void);
         void save_state_dialog (void);
+        void lua_script_dialog (void);
         void load_state_dialog (void);
         void configure_widgets (void);
         void save_spc_dialog (void);

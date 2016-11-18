@@ -556,3 +556,61 @@ S9xQuickLoadSlot (int slot)
     return;
 }
 
+char *
+S9xOpenLuaScriptDialog (void)
+{
+    GtkWidget     *dialog;
+    GtkFileFilter *filter;
+    char          *filename = NULL;
+    gint          result;
+    const char    *extensions[] =
+    {
+            "*.lua",
+            NULL
+    };
+    
+    top_level->pause_from_focus_change ();
+
+    dialog = gtk_file_chooser_dialog_new (_("Load Lua Script"),
+                                          top_level->get_window (),
+                                          GTK_FILE_CHOOSER_ACTION_OPEN,
+                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                                          GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+                                          NULL);
+
+    filter = gtk_file_filter_new ();
+    gtk_file_filter_set_name (filter, "Lua Scripts");
+    for (int i = 0; extensions[i]; i++)
+    {
+        gtk_file_filter_add_pattern (filter, extensions[i]);
+    }
+    gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (dialog), filter);
+
+    filter = gtk_file_filter_new ();
+    gtk_file_filter_set_name (filter, _("All Files"));
+    gtk_file_filter_add_pattern (filter, "*.*");
+    gtk_file_filter_add_pattern (filter, "*");
+    gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (dialog), filter);
+
+    if (strcmp (gui_config->last_directory, ""))
+    {
+        gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog),
+                                             gui_config->last_directory);
+    }
+
+    result = gtk_dialog_run (GTK_DIALOG (dialog));
+    gtk_widget_hide (dialog);
+    if (result == GTK_RESPONSE_ACCEPT)
+    {
+        filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+    }
+    else
+    {
+        filename = NULL;
+    }
+    gtk_widget_destroy (dialog);
+    top_level->unpause_from_focus_change ();
+
+    return filename;
+}
+

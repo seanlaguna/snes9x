@@ -26,10 +26,9 @@
 
 static gboolean
 event_load_lua_script (GtkWidget *widget,
-                       GdkEvent  *event,
                        gpointer  data)
 {
-    S9xLoadLuaScript ();
+    ((Snes9xWindow *) data)->lua_script_dialog ();
 
     return TRUE;
 }
@@ -1095,6 +1094,21 @@ Snes9xWindow::movie_seek_dialog (void)
 
     unpause_from_focus_change ();
 
+    return;
+}
+
+void
+Snes9xWindow::lua_script_dialog ()
+{
+    char *filename;
+    pause_from_focus_change ();
+    filename = S9xOpenLuaScriptDialog ();
+    if (filename)
+    {
+        S9xLoadLuaScript (filename);
+        g_free (filename);
+    }
+    unpause_from_focus_change ();
     return;
 }
 
