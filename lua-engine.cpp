@@ -791,7 +791,6 @@ bool DeferGUIFuncIfNeeded(lua_State* L)
 		DeferFunctionCall(L, deferredGUIIDString);
 		return true;
 	}
-
 	// ok to run the function right now
 	return false;
 }
@@ -1680,7 +1679,6 @@ DEFINE_LUA_FUNCTION(emu_frameadvance, "")
 		case SPEEDMODE_MAXIMUM:
 			break;
 	}
-    std::cout << info.speedMode << std::endl;
     S9xProcessEvents(FALSE);
     S9xMainLoop();
 	return 0;
@@ -3327,7 +3325,7 @@ static void LuaDisplayString (const char *str, int x, int y, uint32 color, uint3
 
 #if 1
 	//if(rotate == 0)
-		PutTextInternal<1,1,0,0>(str, strlen(str), x, y, color, outlineColor);
+    PutTextInternal<1,1,0,0>(str, strlen(str), x, y, color, outlineColor);
 	//else if(rotate == 90)
 	//	PutTextInternal<0,0,1,-1>(str, strlen(str), x, y, color, outlineColor);
 	//else if
@@ -3381,7 +3379,6 @@ DEFINE_LUA_FUNCTION(gui_text, "x,y,str[,color=\"white\"[,outline=\"black\"]]")
 	if(DeferGUIFuncIfNeeded(L))
 		return 0; // we have to wait until later to call this function because we haven't emulated the next frame yet
 		          // (the only way to avoid this deferring is to be in a gui.register or emu.registerafter callback)
-
 	const char* str = toCString(L,3); // better than using luaL_checkstring here (more permissive)
 	
 	if(str && *str)
@@ -4010,7 +4007,7 @@ DEFINE_LUA_FUNCTION(emu_openscript, "filename")
 	//const char* errorMsg = OpenLuaScript(filename, curScriptDir, true);
 	//if(errorMsg)
 	//	luaL_error(L, errorMsg);
-    std::cout << "eo" << std::endl;
+    //std::cout << "eo" << std::endl;
     return 0;
 }
 /*
@@ -5638,7 +5635,6 @@ void CallRegisteredLuaFunctions(LuaCallID calltype)
 		lua_State* L = info.L;
 		if(L && (!info.panic || calltype == LUACALL_BEFOREEXIT))
 		{
-            std::cout << "validly looping" << std::endl;
 #ifdef USE_INFO_STACK
 			infoStack.insert(infoStack.begin(), &info);
 			struct Scope { ~Scope(){ infoStack.erase(infoStack.begin()); } } scope;
@@ -5659,7 +5655,6 @@ void CallRegisteredLuaFunctions(LuaCallID calltype)
 			
 			if (lua_isfunction(L, -1))
 			{
-                std::cout << "crlf not a func" << std::endl;
 				bool wasRunning = info.running;
 				info.running = true;
 				RefreshScriptSpeedStatus();
@@ -5674,18 +5669,15 @@ void CallRegisteredLuaFunctions(LuaCallID calltype)
 			}
 			else
 			{
-                std::cout << "crlf func" << std::endl;
 				lua_pop(L, 1);
 			}
 
 			info.guiFuncsNeedDeferring = true;
 			if(!info.crashed)
 			{
-                std::cout << "crlf no crash" << std::endl;
 				lua_settop(L, top);
 				if(!info.panic)
                 {
-                    std::cout << "crlf no crash" << std::endl;
 					dontworry(info);
                 }
 			}

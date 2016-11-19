@@ -194,6 +194,8 @@
 #include "lua-engine.h"
 #endif
 
+#include <iostream>
+
 extern struct SCheatData		Cheat;
 extern struct SLineData			LineData[240];
 extern struct SLineMatrixData	LineMatrixData[240];
@@ -441,8 +443,9 @@ void S9xEndScreenRefresh (void)
 				S9xDisplayMessages(GFX.Screen, GFX.RealPPL, IPPU.RenderedScreenWidth, IPPU.RenderedScreenHeight, 1);
 
 #ifdef HAVE_LUA
-			if (Settings.AutoDisplayMessages)
+			if (Settings.AutoDisplayMessages) {
 				DrawLuaGuiToScreen(GFX.Screen, IPPU.RenderedScreenWidth, IPPU.RenderedScreenHeight, 16, GFX.Pitch, false);
+            }
 #endif
 
 			S9xDeinitUpdate(IPPU.RenderedScreenWidth, IPPU.RenderedScreenHeight);
