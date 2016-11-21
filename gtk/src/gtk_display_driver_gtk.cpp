@@ -108,14 +108,20 @@ S9xGTKDisplayDriver::output (void *src,
                 height,
                 24);
 
-    cairo_t *cr = gdk_cairo_create (gtk_widget_get_window (drawing_area));
+    //cairo_t *cr = gdk_cairo_create (gtk_widget_get_window (drawing_area));
+    cairo_surface_t *surface = 
+        gdk_window_create_similar_surface (gtk_widget_get_window (drawing_area),
+                                           CAIRO_CONTENT_COLOR,
+                                           gtk_widget_get_allocated_width (drawing_area),
+                                           gtk_widget_get_allocated_height (drawing_area));
+    cairo_t *cr = cairo_create (surface);
 
     gdk_cairo_set_source_pixbuf (cr, pixbuf, x, y);
 
     if (width != dst_width || height != dst_height)
     {
         cairo_matrix_t matrix;
-        cairo_pattern_t *pattern = cairo_get_source (cr);;
+        cairo_pattern_t *pattern = cairo_get_source (cr);
 
         cairo_matrix_init_identity (&matrix);
         cairo_matrix_scale (&matrix,
@@ -133,6 +139,7 @@ S9xGTKDisplayDriver::output (void *src,
     cairo_fill (cr);
 
     cairo_destroy (cr);
+    cairo_surface_destroy(surface);
 
     window->set_mouseable_area (x, y, width, height);
 
@@ -206,7 +213,13 @@ S9xGTKDisplayDriver::clear (void)
     width = allocation.width;
     height = allocation.height;
 
-    cairo_t *cr = gdk_cairo_create (gtk_widget_get_window (drawing_area));
+    //cairo_t *cr = gdk_cairo_create (gtk_widget_get_window (drawing_area));
+    cairo_surface_t *surface = 
+        gdk_window_create_similar_surface (gtk_widget_get_window (drawing_area),
+                                           CAIRO_CONTENT_COLOR,
+                                           gtk_widget_get_allocated_width (drawing_area),
+                                           gtk_widget_get_allocated_height (drawing_area));
+    cairo_t *cr = cairo_create (surface);
 
     cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
 
@@ -214,6 +227,7 @@ S9xGTKDisplayDriver::clear (void)
     {
         cairo_paint (cr);
         cairo_destroy (cr);
+        cairo_surface_destroy(surface);
 
         return;
     }
@@ -244,6 +258,7 @@ S9xGTKDisplayDriver::clear (void)
 
     cairo_fill (cr);
     cairo_destroy (cr);
+    cairo_surface_destroy(surface);
 
     return;
 }

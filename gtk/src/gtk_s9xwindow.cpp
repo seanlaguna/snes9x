@@ -618,11 +618,18 @@ Snes9xWindow::Snes9xWindow (Snes9xConfig *config) :
     else
     {
         icon = gdk_pixbuf_new_from_inline (-1, app_icon, FALSE, NULL);
+        /*GdkPixbuf *
+        gdk_pixbuf_new_from_bytes ((GBytes *)app_icon,
+                                   GdkColorspace colorspace,
+                                   false,
+                                   int bits_per_sample,
+                                   int width,
+                                   int height,
+                                   int rowstride);*/
         gtk_window_set_default_icon (icon);
     }
 
     drawing_area = GTK_DRAWING_AREA (get_widget ("drawingarea"));
-    gtk_widget_set_double_buffered (GTK_WIDGET (drawing_area), FALSE);
 
     gtk_widget_realize (window);
     gtk_widget_realize (GTK_WIDGET (drawing_area));
@@ -651,8 +658,6 @@ Snes9xWindow::Snes9xWindow (Snes9xConfig *config) :
                            NULL,
                            (GConnectFlags) 0);
 
-    gtk_window_set_has_resize_grip (GTK_WINDOW (window), FALSE);
-
 #else
     g_signal_connect_data (drawing_area,
                            "expose-event",
@@ -669,7 +674,9 @@ Snes9xWindow::Snes9xWindow (Snes9xConfig *config) :
         config->window_height = 224;
     }
 
-    default_cursor = gdk_cursor_new (GDK_LEFT_PTR);
+    GdkDisplay *gdk_display = gtk_widget_get_display (window);
+    default_cursor = gdk_cursor_new_for_display (gdk_display,
+                                                 GDK_LEFT_PTR);
     gdk_window_set_cursor (gtk_widget_get_window (window), default_cursor);
 
     resize (config->window_width, config->window_height);
@@ -835,8 +842,8 @@ Snes9xWindow::open_movie_dialog (bool readonly)
         dialog = gtk_file_chooser_dialog_new (_("Open SNES Movie"),
                                               GTK_WINDOW (this->window),
                                               GTK_FILE_CHOOSER_ACTION_OPEN,
-                                              GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                              GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+                                              "_Cancel", GTK_RESPONSE_CANCEL,
+                                              "_Open", GTK_RESPONSE_ACCEPT,
                                               NULL);
     }
     else
@@ -854,8 +861,8 @@ Snes9xWindow::open_movie_dialog (bool readonly)
         dialog = gtk_file_chooser_dialog_new (_("New SNES Movie"),
                                               GTK_WINDOW (this->window),
                                               GTK_FILE_CHOOSER_ACTION_SAVE,
-                                              GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                              GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+                                              "_Cancel", GTK_RESPONSE_CANCEL,
+                                              "_Open", GTK_RESPONSE_ACCEPT,
                                               NULL);
 
         gtk_file_chooser_set_current_name (GTK_FILE_CHOOSER (dialog),
@@ -998,8 +1005,8 @@ Snes9xWindow::load_state_dialog ()
     dialog = gtk_file_chooser_dialog_new (_("Load Saved State"),
                                           GTK_WINDOW (this->window),
                                           GTK_FILE_CHOOSER_ACTION_OPEN,
-                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                          GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+                                          "_Cancel", GTK_RESPONSE_CANCEL,
+                                          "_Open", GTK_RESPONSE_ACCEPT,
                                           NULL);
 
     gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog),
@@ -1134,8 +1141,8 @@ Snes9xWindow::save_state_dialog ()
     dialog = gtk_file_chooser_dialog_new (_("Save State"),
                                           GTK_WINDOW (this->window),
                                           GTK_FILE_CHOOSER_ACTION_SAVE,
-                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                          GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+                                          "_Cancel", GTK_RESPONSE_CANCEL,
+                                          "_Save", GTK_RESPONSE_ACCEPT,
                                           NULL);
 
     gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog),
@@ -1211,8 +1218,8 @@ Snes9xWindow::save_spc_dialog ()
     dialog = gtk_file_chooser_dialog_new (_("Save SPC file..."),
                                           GTK_WINDOW (this->window),
                                           GTK_FILE_CHOOSER_ACTION_SAVE,
-                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                          GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+                                          "_Cancel", GTK_RESPONSE_CANCEL,
+                                          "_Save", GTK_RESPONSE_ACCEPT,
                                           NULL);
 
     gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog),
@@ -1714,7 +1721,9 @@ Snes9xWindow::hide_mouse_cursor (void)
 {
     if (!empty_cursor)
     {
-        empty_cursor = gdk_cursor_new (GDK_BLANK_CURSOR);
+        GdkDisplay *gdk_display = gtk_widget_get_display (window);
+        empty_cursor = gdk_cursor_new_for_display (gdk_display,
+                                                   GDK_BLANK_CURSOR);
     }
 
     gdk_window_set_cursor (gtk_widget_get_window (GTK_WIDGET (drawing_area)),
