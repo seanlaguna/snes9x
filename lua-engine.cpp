@@ -70,7 +70,7 @@ extern "C" {
 	#include "lauxlib.h"
 	#include "lualib.h"
 	#include "lstate.h"
-};
+}
 
 enum SpeedMode
 {
@@ -150,7 +150,6 @@ static std::map<lua_CFunction, const char*> s_cFuncInfoMap;
 // note that the user can always use addressof(func) if they want to retrieve the address.
 #define DEFINE_LUA_FUNCTION(name, argstring) \
 	static int name(lua_State* L); \
-	static const char* name##_args = s_cFuncInfoMap[name] = argstring; \
 	static int name(lua_State* L)
 
 #ifdef _MSC_VER
@@ -219,8 +218,9 @@ static int memory_registerHook(lua_State* L, LuaMemHookType hookType, int defaul
 {
 	// get first argument: address
 	unsigned int addr = luaL_checkinteger(L,1);
-	if((addr & ~0xFFFFFF) == ~0xFFFFFF)
-		addr &= 0xFFFFFF;
+	if ((addr & ~0xFFFFFFu) == ~0xFFFFFFu) {
+		addr &= 0xFFFFFFu;
+    }
 
 	// get optional second argument: size
 	int size = defaultSize;
@@ -879,17 +879,19 @@ defcase:default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END b
 				goto defcase;
 			}
 
-			std::vector<const void*>::const_iterator foundCycleIter = std::find(s_tableAddressStack.begin(), s_tableAddressStack.end(), lua_topointer(L,i));
-			if(foundCycleIter != s_tableAddressStack.end())
-			{
+			std::vector<const void*>::const_iterator foundCycleIter = 
+                std::find(s_tableAddressStack.begin(), 
+                          s_tableAddressStack.end(), 
+                          lua_topointer(L,i));
+			if(foundCycleIter != s_tableAddressStack.end()) {
 				int parentNum = s_tableAddressStack.end() - foundCycleIter;
-				if(parentNum > 1)
+				if(parentNum > 1) {
 					APPENDPRINT "%s:parent^%d",luaL_typename(L,i),parentNum END
-				else
+                } else {
 					APPENDPRINT "%s:parent",luaL_typename(L,i) END
+                }
 			}
-			else
-			{
+			else {
 				s_tableAddressStack.push_back(lua_topointer(L,i));
 				struct Scope { ~Scope(){ s_tableAddressStack.pop_back(); } } scope;
 
@@ -901,52 +903,50 @@ defcase:default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END b
 				bool first = true;
 				bool skipKey = true; // true if we're still in the "array part" of the table
 				lua_Number arrayIndex = (lua_Number)0;
-				while(lua_next(L, i))
-				{
-					if(first)
+				while (lua_next(L, i)) {
+					if (first) {
 						first = false;
-					else
+                    } else {
 						APPENDPRINT ", " END
-					if(skipKey)
-					{
+                    }
+
+                    if (skipKey) {
 						arrayIndex += (lua_Number)1;
 						bool keyIsNumber = (lua_type(L, keyIndex) == LUA_TNUMBER);
 						skipKey = keyIsNumber && (lua_tonumber(L, keyIndex) == arrayIndex);
 					}
-					if(!skipKey)
-					{
+					if (!skipKey) {
 						bool keyIsString = (lua_type(L, keyIndex) == LUA_TSTRING);
 						bool invalidLuaIdentifier = (!keyIsString || !isalphaorunderscore(*lua_tostring(L, keyIndex)));
-						if(invalidLuaIdentifier)
-							if(keyIsString)
+						if (invalidLuaIdentifier) {
+							if (keyIsString) {
 								APPENDPRINT "['" END
-							else
+                            } else {
 								APPENDPRINT "[" END
-
+                            }
+                        }
 						toCStringConverter(L, keyIndex, ptr, remaining); // key
-
-						if(invalidLuaIdentifier)
-							if(keyIsString)
+						if (invalidLuaIdentifier) {
+							if (keyIsString) {
 								APPENDPRINT "']=" END
-							else
+                            } else {
 								APPENDPRINT "]=" END
-						else
+                            }
+                        } else {
 							APPENDPRINT "=" END
+                        }
 					}
 
 					bool valueIsString = (lua_type(L, valueIndex) == LUA_TSTRING);
-					if(valueIsString)
+					if (valueIsString) {
 						APPENDPRINT "'" END
-
+                    }
 					toCStringConverter(L, valueIndex, ptr, remaining); // value
-
-					if(valueIsString)
+					if(valueIsString) {
 						APPENDPRINT "'" END
-
+                    }
 					lua_pop(L, 1);
-
-					if(remaining <= 0)
-					{
+					if(remaining <= 0) {
 						lua_settop(L, keyIndex-1); // stack might not be clean yet if we're breaking early
 						break;
 					}
@@ -956,8 +956,7 @@ defcase:default: APPENDPRINT "%s:%p",luaL_typename(L,i),lua_topointer(L,i) END b
 		}	break;
 	}
 
-	if(usedMeta)
-	{
+	if(usedMeta) {
 		s_metacallStack.pop_back();
 		lua_pop(L, 1);
 	}
@@ -975,15 +974,13 @@ static char* rawToCString(lua_State* L, int idx)
 	*ptr = 0;
 
 	int remaining = s_tempStrMaxLen;
-	for(int i = a; i <= n; i++)
-	{
+	for (int i = a; i <= n; i++) {
 		toCStringConverter(L, i, ptr, remaining);
 		if(i != n)
 			APPENDPRINT " " END
 	}
 
-	if(remaining < 3)
-	{
+	if (remaining < 3) {
 		while(remaining < 6)
 			remaining++, ptr--;
 		APPENDPRINT "..." END
@@ -1896,7 +1893,7 @@ DEFINE_LUA_FUNCTION(memory_getregister, "cpu_dot_registername_string")
 {
 	const char* qualifiedRegisterName = luaL_checkstring(L,1);
 	lua_settop(L,0);
-	for(int cpu = 0; cpu < sizeof(cpuToRegisterMaps)/sizeof(*cpuToRegisterMaps); cpu++)
+	for(uint cpu = 0; cpu < sizeof(cpuToRegisterMaps)/sizeof(*cpuToRegisterMaps); cpu++)
 	{
 		cpuToRegisterMap ctrm = cpuToRegisterMaps[cpu];
 		int cpuNameLen = strlen(ctrm.cpuName);
@@ -1929,7 +1926,7 @@ DEFINE_LUA_FUNCTION(memory_setregister, "cpu_dot_registername_string,value")
 	const char* qualifiedRegisterName = luaL_checkstring(L,1);
 	unsigned long value = (unsigned long)(luaL_checkinteger(L,2));
 	lua_settop(L,0);
-	for(int cpu = 0; cpu < sizeof(cpuToRegisterMaps)/sizeof(*cpuToRegisterMaps); cpu++)
+	for(uint cpu = 0; cpu < sizeof(cpuToRegisterMaps)/sizeof(*cpuToRegisterMaps); cpu++)
 	{
 		cpuToRegisterMap ctrm = cpuToRegisterMaps[cpu];
 		int cpuNameLen = strlen(ctrm.cpuName);
@@ -2519,7 +2516,7 @@ DEFINE_LUA_FUNCTION(joy_set, "[controller=1,]inputtable")
 			uint32 input = 0;
 			uint32 mask = 0;
 
-			for(int i = 0; i < sizeof(s_buttonDescs)/sizeof(*s_buttonDescs); i++)
+			for(uint i = 0; i < sizeof(s_buttonDescs)/sizeof(*s_buttonDescs); i++)
 			{
 				const ButtonDesc& bd = s_buttonDescs[i];
 				if(bd.controllerNum == controllerNumber)
@@ -2582,7 +2579,7 @@ int joy_get_internal(lua_State* L, bool reportUp, bool reportDown)
 		{
 			uint32 input = MovieGetJoypad(controllerNumber - 1);
 
-			for(int i = 0; i < sizeof(s_buttonDescs)/sizeof(*s_buttonDescs); i++)
+			for(uint i = 0; i < sizeof(s_buttonDescs)/sizeof(*s_buttonDescs); i++)
 			{
 				const ButtonDesc& bd = s_buttonDescs[i];
 				if(bd.controllerNum == controllerNumber)
@@ -2602,8 +2599,8 @@ int joy_get_internal(lua_State* L, bool reportUp, bool reportDown)
 			uint8 buf [MOUSE_DATA_SIZE] = {0};
 			if(MovieGetMouse(controllerNumber - 1, buf))
 			{
-				int16 x = ((uint16*)buf)[0];
-				int16 y = ((uint16*)buf)[1];
+				int16 x = (uint16)(buf[0]);
+				int16 y = (uint16)(buf[2]);
 				uint8 buttons = buf[4];
 
 				// set table with mouse status
@@ -2631,8 +2628,8 @@ int joy_get_internal(lua_State* L, bool reportUp, bool reportDown)
 			uint8 buf [SCOPE_DATA_SIZE] = {0};
 			if(MovieGetScope(controllerNumber - 1, buf))
 			{
-				int16 x = ((uint16*)buf)[0];
-				int16 y = ((uint16*)buf)[1];
+				int16 x = (uint16)(buf[0]);
+				int16 y = (uint16)(buf[2]);
 				uint8 buttons = buf[4];
 
 				// set table with super scope status
@@ -2679,8 +2676,8 @@ int joy_get_internal(lua_State* L, bool reportUp, bool reportDown)
 			if(MovieGetJustifier(controllerNumber - 1, buf))
 			{
 				bool weHaveTwoJustifiers = (ids[0] == 1);
-				int16 x1 = ((uint16*)buf)[0];
-				int16 y1 = ((uint16*)buf)[2];
+				int16 x1 = (uint16)(buf[0]);
+				int16 y1 = (uint16)(buf[2]);
 				uint8 buttons = buf[8];
 				bool8 offscreen1 = buf[9];
 
@@ -2716,8 +2713,8 @@ int joy_get_internal(lua_State* L, bool reportUp, bool reportDown)
 
 				if(weHaveTwoJustifiers)
 				{
-					int16 x2 = ((uint16*)buf)[1];
-					int16 y2 = ((uint16*)buf)[3];
+					int16 x2 = (uint16)buf[2];
+					int16 y2 = (uint16)buf[6];
 					bool8 offscreen2 = buf[10];
 
 					// also set table with the second justifier's status
@@ -2864,8 +2861,7 @@ inline int getcolor_unmodified(lua_State *L, int idx, int defaultColor)
 		case LUA_TSTRING:
 		{
 			const char* str = lua_tostring(L,idx);
-			if(*str == '#')
-			{
+			if (*str == '#') {
 				int color;
 				sscanf(str+1, "%X", &color);
 				int len = strlen(str+1);
@@ -2873,14 +2869,16 @@ inline int getcolor_unmodified(lua_State *L, int idx, int defaultColor)
 				color <<= missing << 2;
 				if(missing >= 2) color |= 0xFF;
 				return color;
-			}
-			else for(int i = 0; i<sizeof(s_colorMapping)/sizeof(*s_colorMapping); i++)
-			{
-				if(!stricmp(str,s_colorMapping[i].name))
-					return s_colorMapping[i].value;
-			}
-			if(!strnicmp(str, "rand", 4))
+			} else {
+                for (uint i = 0; i < sizeof(s_colorMapping)/sizeof(*s_colorMapping); i++) {
+                    if (!stricmp(str,s_colorMapping[i].name)) {
+                        return s_colorMapping[i].value;
+                    }
+			    }
+            }
+			if (!strnicmp(str, "rand", 4)) {
 				return ((rand()*255/RAND_MAX) << 8) | ((rand()*255/RAND_MAX) << 16) | ((rand()*255/RAND_MAX) << 24) | 0xFF;
+            }
 		}	break;
 		case LUA_TTABLE:
 		{
@@ -3231,10 +3229,10 @@ static void PutTextInternal (const char *str, int len, short x, short y, int col
 		if(dxdy < 0 && x < curGuiData.xMin) break;
 
 		int c = *str++;
-		if(dxdx > 0 && x >= curGuiData.xMax
-		|| dxdx < 0 && x < curGuiData.xMin
-		|| dydx > 0 && y >= curGuiData.yMax
-		|| dydx < 0 && y < curGuiData.yMin)
+		if ((dxdx > 0 && x >= curGuiData.xMax)
+		||  (dxdx < 0 && x <  curGuiData.xMin)
+		||  (dydx > 0 && y >= curGuiData.yMax)
+		||  (dydx < 0 && y <  curGuiData.yMin))
 		{
 			while (c != '\n') {
 				c = *str;
@@ -3961,7 +3959,7 @@ void DrawLuaGuiToScreen(void *s, int width, int height, int bpp, int pitch, bool
 					else
 					{
 						// alpha-blend
-						uint8 dst_r, dst_g, dst_b;
+						uint8 dst_r = 0, dst_g = 0, dst_b = 0;
 						switch(bpp) {
 						case 16: ParseColor16(dst_px, &dst_r, &dst_g, &dst_b, NULL); break;
 						case 24: ParseColor24(dst_px, &dst_r, &dst_g, &dst_b, NULL); break;
@@ -4154,7 +4152,7 @@ DEFINE_LUA_FUNCTION(movie_play, "[filename]")
 	int err = S9xMovieOpen (filename, readonly);
 	if(err != SUCCESS)
 	{
-		char* errorMsg = "Could not open movie file.";
+        std::string errorMsg = "Could not open movie file.";
 		switch(err)
 		{
 		case FILE_NOT_FOUND:
@@ -4167,7 +4165,7 @@ DEFINE_LUA_FUNCTION(movie_play, "[filename]")
 			errorMsg = "Unsupported movie version.";
 			break;
 		}
-		luaL_error(L, errorMsg);
+		luaL_error(L, errorMsg.c_str());
 		return false;
 	}
     return 0;
@@ -4756,130 +4754,130 @@ static const struct CFuncInfo
 }
 cFuncInfo [] = // this info is stored here to avoid having to change all of Lua's libraries to use something like DEFINE_LUA_FUNCTION
 {
-	{LUA_STRLIBNAME, "byte", "str[,start[,end]]"},
-	{LUA_STRLIBNAME, "char", "...[bytes]"},
-	{LUA_STRLIBNAME, "dump", "func"},
-	{LUA_STRLIBNAME, "find", "str,pattern[,init[,plain]]"},
-	{LUA_STRLIBNAME, "format", "formatstring,..."},
-	{LUA_STRLIBNAME, "gfind", "!deprecated!"},
-	{LUA_STRLIBNAME, "gmatch", "str,pattern"},
-	{LUA_STRLIBNAME, "gsub", "str,pattern,repl[,n]"},
-	{LUA_STRLIBNAME, "len", "str"},
-	{LUA_STRLIBNAME, "lower", "str"},
-	{LUA_STRLIBNAME, "match", "str,pattern[,init]"},
-	{LUA_STRLIBNAME, "rep", "str,n"},
-	{LUA_STRLIBNAME, "reverse", "str"},
-	{LUA_STRLIBNAME, "sub", "str,start[,end]"},
-	{LUA_STRLIBNAME, "upper", "str"},
-	{NULL, "module", "name[,...]"},
-	{NULL, "require", "modname"},
-	{LUA_LOADLIBNAME, "loadlib", "libname,funcname"},
-	{LUA_LOADLIBNAME, "seeall", "module"},
-	{LUA_COLIBNAME, "create", "func"},
-	{LUA_COLIBNAME, "resume", "co[,val1,...]"},
-	{LUA_COLIBNAME, "running", ""},
-	{LUA_COLIBNAME, "status", "co"},
-	{LUA_COLIBNAME, "wrap", "func"},
-	{LUA_COLIBNAME, "yield", "..."},
-	{NULL, "assert", "cond[,message]"},
-	{NULL, "collectgarbage", "opt[,arg]"},
-	{NULL, "gcinfo", ""},
-	{NULL, "dofile", "filename"},
-	{NULL, "error", "message[,level]"},
-	{NULL, "getfenv", "[level_or_func]"},
-	{NULL, "getmetatable", "object"},
-	{NULL, "ipairs", "arraytable"},
-	{NULL, "load", "func[,chunkname]"},
-	{NULL, "loadfile", "[filename]"},
-	{NULL, "loadstring", "str[,chunkname]"},
-	{NULL, "next", "table[,index]"},
-	{NULL, "pairs", "table"},
-	{NULL, "pcall", "func,arg1,..."},
-	{NULL, "rawequal", "v1,v2"},
-	{NULL, "rawget", "table,index"},
-	{NULL, "rawset", "table,index,value"},
-	{NULL, "select", "index,..."},
-	{NULL, "setfenv", "level_or_func,envtable"},
-	{NULL, "setmetatable", "table,metatable"},
-	{NULL, "tonumber", "str_or_num[,base]"},
-	{NULL, "type", "obj"},
-	{NULL, "unpack", "list[,i=1[,j=#list]]"},
-	{NULL, "xpcall", "func,errhandler"},
-	{NULL, "newproxy", "hasmeta"},
-	{LUA_MATHLIBNAME, "abs", "x"},
-	{LUA_MATHLIBNAME, "acos", "x"},
-	{LUA_MATHLIBNAME, "asin", "x"},
-	{LUA_MATHLIBNAME, "atan", "x"},
-	{LUA_MATHLIBNAME, "atan2", "y,x"},
-	{LUA_MATHLIBNAME, "ceil", "x"},
-	{LUA_MATHLIBNAME, "cos", "rads"},
-	{LUA_MATHLIBNAME, "cosh", "x"},
-	{LUA_MATHLIBNAME, "deg", "rads"},
-	{LUA_MATHLIBNAME, "exp", "x"},
-	{LUA_MATHLIBNAME, "floor", "x"},
-	{LUA_MATHLIBNAME, "fmod", "x,y"},
-	{LUA_MATHLIBNAME, "frexp", "x"},
-	{LUA_MATHLIBNAME, "ldexp", "m,e"},
-	{LUA_MATHLIBNAME, "log", "x"},
-	{LUA_MATHLIBNAME, "log10", "x"},
-	{LUA_MATHLIBNAME, "max", "x,..."},
-	{LUA_MATHLIBNAME, "min", "x,..."},
-	{LUA_MATHLIBNAME, "modf", "x"},
-	{LUA_MATHLIBNAME, "pow", "x,y"},
-	{LUA_MATHLIBNAME, "rad", "degs"},
-	{LUA_MATHLIBNAME, "random", "[m[,n]]"},
-	{LUA_MATHLIBNAME, "randomseed", "x"},
-	{LUA_MATHLIBNAME, "sin", "rads"},
-	{LUA_MATHLIBNAME, "sinh", "x"},
-	{LUA_MATHLIBNAME, "sqrt", "x"},
-	{LUA_MATHLIBNAME, "tan", "rads"},
-	{LUA_MATHLIBNAME, "tanh", "x"},
-	{LUA_IOLIBNAME, "close", "[file]"},
-	{LUA_IOLIBNAME, "flush", ""},
-	{LUA_IOLIBNAME, "input", "[file]"},
-	{LUA_IOLIBNAME, "lines", "[filename]"},
-	{LUA_IOLIBNAME, "open", "filename[,mode=\"r\"]"},
-	{LUA_IOLIBNAME, "output", "[file]"},
-	{LUA_IOLIBNAME, "popen", "prog,[model]"},
-	{LUA_IOLIBNAME, "read", "..."},
-	{LUA_IOLIBNAME, "tmpfile", ""},
-	{LUA_IOLIBNAME, "type", "obj"},
-	{LUA_IOLIBNAME, "write", "..."},
-	{LUA_OSLIBNAME, "clock", ""},
-	{LUA_OSLIBNAME, "date", "[format[,time]]"},
-	{LUA_OSLIBNAME, "difftime", "t2,t1"},
-	{LUA_OSLIBNAME, "execute", "[command]"},
-	{LUA_OSLIBNAME, "exit", "[code]"},
-	{LUA_OSLIBNAME, "getenv", "varname"},
-	{LUA_OSLIBNAME, "remove", "filename"},
-	{LUA_OSLIBNAME, "rename", "oldname,newname"},
-	{LUA_OSLIBNAME, "setlocale", "locale[,category]"},
-	{LUA_OSLIBNAME, "time", "[timetable]"},
-	{LUA_OSLIBNAME, "tmpname", ""},
-	{LUA_DBLIBNAME, "debug", ""},
-	{LUA_DBLIBNAME, "getfenv", "o"},
-	{LUA_DBLIBNAME, "gethook", "[thread]"},
-	{LUA_DBLIBNAME, "getinfo", "[thread,]function[,what]"},
-	{LUA_DBLIBNAME, "getlocal", "[thread,]level,local"},
-	{LUA_DBLIBNAME, "getmetatable", "[object]"},
-	{LUA_DBLIBNAME, "getregistry", ""},
-	{LUA_DBLIBNAME, "getupvalue", "func,up"},
-	{LUA_DBLIBNAME, "setfenv", "object,table"},
-	{LUA_DBLIBNAME, "sethook", "[thread,]hook,mask[,count]"},
-	{LUA_DBLIBNAME, "setlocal", "[thread,]level,local,value"},
-	{LUA_DBLIBNAME, "setmetatable", "object,table"},
-	{LUA_DBLIBNAME, "setupvalue", "func,up,value"},
-	{LUA_DBLIBNAME, "traceback", "[thread,][message][,level]"},
-	{LUA_TABLIBNAME, "concat", "table[,sep[,i[,j]]]"},
-	{LUA_TABLIBNAME, "insert", "table,[pos,]value"},
-	{LUA_TABLIBNAME, "maxn", "table"},
-	{LUA_TABLIBNAME, "remove", "table[,pos]"},
-	{LUA_TABLIBNAME, "sort", "table[,comp]"},
-	{LUA_TABLIBNAME, "foreach", "table,func"},
-	{LUA_TABLIBNAME, "foreachi", "table,func"},
-	{LUA_TABLIBNAME, "getn", "table"},
-	{LUA_TABLIBNAME, "maxn", "table"},
-	{LUA_TABLIBNAME, "setn", "table,value"}, // I know some of these are obsolete but they should still have argument info if they're exposed to the user
+	{LUA_STRLIBNAME, "byte", "str[,start[,end]]", false},
+	{LUA_STRLIBNAME, "char", "...[bytes]", false},
+	{LUA_STRLIBNAME, "dump", "func", false},
+	{LUA_STRLIBNAME, "find", "str,pattern[,init[,plain]]", false},
+	{LUA_STRLIBNAME, "format", "formatstring,...", false},
+	{LUA_STRLIBNAME, "gfind", "!deprecated!", false},
+	{LUA_STRLIBNAME, "gmatch", "str,pattern", false},
+	{LUA_STRLIBNAME, "gsub", "str,pattern,repl[,n]", false},
+	{LUA_STRLIBNAME, "len", "str", false},
+	{LUA_STRLIBNAME, "lower", "str", false},
+	{LUA_STRLIBNAME, "match", "str,pattern[,init]", false},
+	{LUA_STRLIBNAME, "rep", "str,n", false},
+	{LUA_STRLIBNAME, "reverse", "str", false},
+	{LUA_STRLIBNAME, "sub", "str,start[,end]", false},
+	{LUA_STRLIBNAME, "upper", "str", false},
+	{NULL, "module", "name[,...]", false},
+	{NULL, "require", "modname", false},
+	{LUA_LOADLIBNAME, "loadlib", "libname,funcname", false},
+	{LUA_LOADLIBNAME, "seeall", "module", false},
+	{LUA_COLIBNAME, "create", "func", false},
+	{LUA_COLIBNAME, "resume", "co[,val1,...]", false},
+	{LUA_COLIBNAME, "running", "", false},
+	{LUA_COLIBNAME, "status", "co", false},
+	{LUA_COLIBNAME, "wrap", "func", false},
+	{LUA_COLIBNAME, "yield", "...", false},
+	{NULL, "assert", "cond[,message]", false},
+	{NULL, "collectgarbage", "opt[,arg]", false},
+	{NULL, "gcinfo", "", false},
+	{NULL, "dofile", "filename", false},
+	{NULL, "error", "message[,level]", false},
+	{NULL, "getfenv", "[level_or_func]", false},
+	{NULL, "getmetatable", "object", false},
+	{NULL, "ipairs", "arraytable", false},
+	{NULL, "load", "func[,chunkname]", false},
+	{NULL, "loadfile", "[filename]", false},
+	{NULL, "loadstring", "str[,chunkname]", false},
+	{NULL, "next", "table[,index]", false},
+	{NULL, "pairs", "table", false},
+	{NULL, "pcall", "func,arg1,...", false},
+	{NULL, "rawequal", "v1,v2", false},
+	{NULL, "rawget", "table,index", false},
+	{NULL, "rawset", "table,index,value", false},
+	{NULL, "select", "index,...", false},
+	{NULL, "setfenv", "level_or_func,envtable", false},
+	{NULL, "setmetatable", "table,metatable", false},
+	{NULL, "tonumber", "str_or_num[,base]", false},
+	{NULL, "type", "obj", false},
+	{NULL, "unpack", "list[,i=1[,j=#list]]", false},
+	{NULL, "xpcall", "func,errhandler", false},
+	{NULL, "newproxy", "hasmeta", false},
+	{LUA_MATHLIBNAME, "abs", "x", false},
+	{LUA_MATHLIBNAME, "acos", "x", false},
+	{LUA_MATHLIBNAME, "asin", "x", false},
+	{LUA_MATHLIBNAME, "atan", "x", false},
+	{LUA_MATHLIBNAME, "atan2", "y,x", false},
+	{LUA_MATHLIBNAME, "ceil", "x", false},
+	{LUA_MATHLIBNAME, "cos", "rads", false},
+	{LUA_MATHLIBNAME, "cosh", "x", false},
+	{LUA_MATHLIBNAME, "deg", "rads", false},
+	{LUA_MATHLIBNAME, "exp", "x", false},
+	{LUA_MATHLIBNAME, "floor", "x", false},
+	{LUA_MATHLIBNAME, "fmod", "x,y", false},
+	{LUA_MATHLIBNAME, "frexp", "x", false},
+	{LUA_MATHLIBNAME, "ldexp", "m,e", false},
+	{LUA_MATHLIBNAME, "log", "x", false},
+	{LUA_MATHLIBNAME, "log10", "x", false},
+	{LUA_MATHLIBNAME, "max", "x,...", false},
+	{LUA_MATHLIBNAME, "min", "x,...", false},
+	{LUA_MATHLIBNAME, "modf", "x", false},
+	{LUA_MATHLIBNAME, "pow", "x,y", false},
+	{LUA_MATHLIBNAME, "rad", "degs", false},
+	{LUA_MATHLIBNAME, "random", "[m[,n]]", false},
+	{LUA_MATHLIBNAME, "randomseed", "x", false},
+	{LUA_MATHLIBNAME, "sin", "rads", false},
+	{LUA_MATHLIBNAME, "sinh", "x", false},
+	{LUA_MATHLIBNAME, "sqrt", "x", false},
+	{LUA_MATHLIBNAME, "tan", "rads", false},
+	{LUA_MATHLIBNAME, "tanh", "x", false},
+	{LUA_IOLIBNAME, "close", "[file]", false},
+	{LUA_IOLIBNAME, "flush", "", false},
+	{LUA_IOLIBNAME, "input", "[file]", false},
+	{LUA_IOLIBNAME, "lines", "[filename]", false},
+	{LUA_IOLIBNAME, "open", "filename[,mode=\"r\"]", false},
+	{LUA_IOLIBNAME, "output", "[file]", false},
+	{LUA_IOLIBNAME, "popen", "prog,[model]", false},
+	{LUA_IOLIBNAME, "read", "...", false},
+	{LUA_IOLIBNAME, "tmpfile", "", false},
+	{LUA_IOLIBNAME, "type", "obj", false},
+	{LUA_IOLIBNAME, "write", "...", false},
+	{LUA_OSLIBNAME, "clock", "", false},
+	{LUA_OSLIBNAME, "date", "[format[,time]]", false},
+	{LUA_OSLIBNAME, "difftime", "t2,t1", false},
+	{LUA_OSLIBNAME, "execute", "[command]", false},
+	{LUA_OSLIBNAME, "exit", "[code]", false},
+	{LUA_OSLIBNAME, "getenv", "varname", false},
+	{LUA_OSLIBNAME, "remove", "filename", false},
+	{LUA_OSLIBNAME, "rename", "oldname,newname", false},
+	{LUA_OSLIBNAME, "setlocale", "locale[,category]", false},
+	{LUA_OSLIBNAME, "time", "[timetable]", false},
+	{LUA_OSLIBNAME, "tmpname", "", false},
+	{LUA_DBLIBNAME, "debug", "", false},
+	{LUA_DBLIBNAME, "getfenv", "o", false},
+	{LUA_DBLIBNAME, "gethook", "[thread]", false},
+	{LUA_DBLIBNAME, "getinfo", "[thread,]function[,what]", false},
+	{LUA_DBLIBNAME, "getlocal", "[thread,]level,local", false},
+	{LUA_DBLIBNAME, "getmetatable", "[object]", false},
+	{LUA_DBLIBNAME, "getregistry", "", false},
+	{LUA_DBLIBNAME, "getupvalue", "func,up", false},
+	{LUA_DBLIBNAME, "setfenv", "object,table", false},
+	{LUA_DBLIBNAME, "sethook", "[thread,]hook,mask[,count]", false},
+	{LUA_DBLIBNAME, "setlocal", "[thread,]level,local,value", false},
+	{LUA_DBLIBNAME, "setmetatable", "object,table", false},
+	{LUA_DBLIBNAME, "setupvalue", "func,up,value", false},
+	{LUA_DBLIBNAME, "traceback", "[thread,][message][,level]", false},
+	{LUA_TABLIBNAME, "concat", "table[,sep[,i[,j]]]", false},
+	{LUA_TABLIBNAME, "insert", "table,[pos,]value", false},
+	{LUA_TABLIBNAME, "maxn", "table", false},
+	{LUA_TABLIBNAME, "remove", "table[,pos]", false},
+	{LUA_TABLIBNAME, "sort", "table[,comp]", false},
+	{LUA_TABLIBNAME, "foreach", "table,func", false},
+	{LUA_TABLIBNAME, "foreachi", "table,func", false},
+	{LUA_TABLIBNAME, "getn", "table", false},
+	{LUA_TABLIBNAME, "maxn", "table", false},
+	{LUA_TABLIBNAME, "setn", "table,value", false}, // I know some of these are obsolete but they should still have argument info if they're exposed to the user
 	{LUA_FILEHANDLE, "setvbuf", "mode[,size]", true},
 	{LUA_FILEHANDLE, "lines", "", true},
 	{LUA_FILEHANDLE, "read", "...", true},
@@ -4929,7 +4927,7 @@ void registerLibs(lua_State* L)
 	{
 		once = false;
 
-		for(int i = 0; i < sizeof(cFuncInfo)/sizeof(*cFuncInfo); i++)
+		for (uint i = 0; i < sizeof(cFuncInfo)/sizeof(*cFuncInfo); i++)
 		{
 			const CFuncInfo& cfi = cFuncInfo[i];
 			if(cfi.registry)
@@ -5573,7 +5571,7 @@ static void CallRegisteredLuaMemHook_LuaMatch(unsigned int address, int size, un
 #endif
 				lua_settop(L, 0);
 				lua_getfield(L, LUA_REGISTRYINDEX, luaMemHookTypeStrings[hookType]);
-				for(int i = address; i != address+size; i++)
+				for (uint i = address; i != address+size; i++)
 				{
 					lua_rawgeti(L, -1, i);
 					if (lua_isfunction(L, -1))
